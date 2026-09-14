@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Support for PHP 8.3+ and Laravel 12 / 13.
+
 - `Iban` value object for Ukrainian IBANs: normalization, format, length and ISO 13616 MOD 97
   validation with typed `IbanError` reasons. No `bcmath`/`gmp` required.
 - `Bank` readonly DTO and `BankStatus` enum with translated labels. Unknown NBU status codes are
@@ -19,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `snapshot` driver (default) with the registry bundled in the package (generated from real NBU data),
   storage file priority, per-process memoization and a versioned Laravel cache.
 - `database` driver with a publishable migration (`ua_banks`, `ua_bank_mfo_aliases`), the raw NBU
-  record and `removed_from_source_at`.
+  record and `removed_from_source_at`. It serves the bundled snapshot until the first sync.
 - `ua-banks:sync` command with response validation, atomic writes, `--dry-run`, `--force`,
   retries with backoff and optional scheduler registration.
 - `ua-banks:snapshot` maintainer command to regenerate the bundled snapshot.

@@ -1,5 +1,13 @@
 # Laravel UA Banks
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/maeandrew/laravel-ua-banks.svg?style=flat-square)](https://packagist.org/packages/maeandrew/laravel-ua-banks)
+[![Tests](https://img.shields.io/github/actions/workflow/status/maeandrew/laravel-ua-banks/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/maeandrew/laravel-ua-banks/actions/workflows/tests.yml)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%20max-brightgreen.svg?style=flat-square)](phpstan.neon.dist)
+[![PHP Version](https://img.shields.io/badge/php-%5E8.3-777BB4.svg?style=flat-square&logo=php&logoColor=white)](composer.json)
+[![Laravel](https://img.shields.io/badge/laravel-12%20%7C%2013-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white)](composer.json)
+[![Total Downloads](https://img.shields.io/packagist/dt/maeandrew/laravel-ua-banks.svg?style=flat-square)](https://packagist.org/packages/maeandrew/laravel-ua-banks)
+[![License](https://img.shields.io/github/license/maeandrew/laravel-ua-banks.svg?style=flat-square)](LICENSE.md)
+
 [English](README.md) · **Українська**
 
 Локальний довідник банків України на основі відкритих даних Національного банку України (НБУ)
@@ -22,7 +30,7 @@
 ## Вимоги
 
 - PHP 8.3+
-- Laravel 11, 12 або 13
+- Laravel 12 або 13
 
 ## Встановлення
 
@@ -176,6 +184,8 @@ JSON-файл. Драйвер читає `storage/app/ua-banks/banks.json`, як
 цього файлу немає, використовується **вбудований** у пакет snapshot (`resources/data/banks.json`).
 Розібрані дані кешуються в межах процесу і в Laravel cache (`ua-banks.cache.store`,
 `ua-banks.cache.ttl`). Ключ кешу змінюється щоразу, коли файл замінюється.
+Якщо файл у storage неможливо прочитати, у лог пишеться попередження (один раз на версію файлу),
+а натомість використовується вбудований snapshot.
 
 ### `database`
 
@@ -190,8 +200,9 @@ php artisan ua-banks:sync
 можна змінити в `ua-banks.database`. Моделі Eloquent є
 (`Maeandrew\UaBanks\Models\BankRecord`, `MfoAlias`), але публічний API завжди повертає DTO `Bank`.
 
-Драйвер `database` не використовує вбудований snapshot як запасний варіант. Після міграції
-запустіть `ua-banks:sync`.
+Доки перший успішний `ua-banks:sync` не заповнить таблиці, пошук іде по вбудованому snapshot, тож
+валідація працює одразу після міграції. Щоб порожні таблиці вважалися відсутнім довідником,
+встановіть `ua-banks.database.fallback_to_bundled_snapshot` у `false`.
 
 ### Власні драйвери
 
@@ -296,7 +307,7 @@ NbuFake::fixturePath('typ0.json');                  // шлях до фікст�
 
 Див. [`config/ua-banks.php`](config/ua-banks.php). Кожен ключ має коментар: `driver`,
 `source.{base_url,timeout,retries,backoff,user_agent}`, `sync.min_banks`, `snapshot.path`,
-`database.{connection,tables}`, `cache.{store,ttl}`, `stale_after_days`,
+`database.{connection,tables,fallback_to_bundled_snapshot}`, `cache.{store,ttl}`, `stale_after_days`,
 `schedule.{enabled,cron,timezone}`, `validation.{on_missing_registry,allowed_statuses}`.
 
 ## Обмеження

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/maeandrew/laravel-ua-banks/security/advisories/new
+    about: Please report security issues privately, not as a public issue.
+  - name: NBU data problem
+    url: https://bank.gov.ua/ua/open-data
+    about: Wrong bank data in the registry itself is published by the National Bank of Ukraine.

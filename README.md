@@ -1,5 +1,13 @@
 # Laravel UA Banks
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/maeandrew/laravel-ua-banks.svg?style=flat-square)](https://packagist.org/packages/maeandrew/laravel-ua-banks)
+[![Tests](https://img.shields.io/github/actions/workflow/status/maeandrew/laravel-ua-banks/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/maeandrew/laravel-ua-banks/actions/workflows/tests.yml)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%20max-brightgreen.svg?style=flat-square)](phpstan.neon.dist)
+[![PHP Version](https://img.shields.io/badge/php-%5E8.3-777BB4.svg?style=flat-square&logo=php&logoColor=white)](composer.json)
+[![Laravel](https://img.shields.io/badge/laravel-12%20%7C%2013-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white)](composer.json)
+[![Total Downloads](https://img.shields.io/packagist/dt/maeandrew/laravel-ua-banks.svg?style=flat-square)](https://packagist.org/packages/maeandrew/laravel-ua-banks)
+[![License](https://img.shields.io/github/license/maeandrew/laravel-ua-banks.svg?style=flat-square)](LICENSE.md)
+
 **English** · [Українська](README.uk.md)
 
 A local registry of Ukrainian banks, built from the National Bank of Ukraine (NBU) open data,
@@ -22,7 +30,7 @@ This package fills that gap:
 ## Requirements
 
 - PHP 8.3+
-- Laravel 11, 12 or 13
+- Laravel 12 or 13
 
 ## Installation
 
@@ -176,7 +184,8 @@ A JSON file. The driver reads `storage/app/ua-banks/banks.json`, which `ua-banks
 If that file doesn't exist, it falls back to the snapshot **bundled** with the package
 (`resources/data/banks.json`). Parsed data is memoized per process and cached in the Laravel
 cache (`ua-banks.cache.store`, `ua-banks.cache.ttl`). The cache key changes whenever the file
-is replaced.
+is replaced. An unreadable storage file is logged as a warning (once per file version), and
+the bundled snapshot is used instead.
 
 ### `database`
 
@@ -191,7 +200,9 @@ Tables: `ua_banks` (PK `mfo`, all `Bank` columns plus `raw` JSON with the origin
 and connection in `ua-banks.database`. Eloquent models exist
 (`Maeandrew\UaBanks\Models\BankRecord`, `MfoAlias`), but the public API always returns `Bank` DTOs.
 
-The `database` driver does not fall back to the bundled snapshot. Run `ua-banks:sync` after migrating.
+Until the first successful `ua-banks:sync` fills the tables, lookups are answered from the bundled
+snapshot, so validation works right after migrating. To treat empty tables as a missing registry
+instead, set `ua-banks.database.fallback_to_bundled_snapshot` to `false`.
 
 ### Custom drivers
 
@@ -296,7 +307,7 @@ NbuFake::fixturePath('typ0.json');                  // raw fixture path, for Htt
 
 See [`config/ua-banks.php`](config/ua-banks.php). Every key is commented: `driver`,
 `source.{base_url,timeout,retries,backoff,user_agent}`, `sync.min_banks`, `snapshot.path`,
-`database.{connection,tables}`, `cache.{store,ttl}`, `stale_after_days`,
+`database.{connection,tables,fallback_to_bundled_snapshot}`, `cache.{store,ttl}`, `stale_after_days`,
 `schedule.{enabled,cron,timezone}`, `validation.{on_missing_registry,allowed_statuses}`.
 
 ## Limitations
