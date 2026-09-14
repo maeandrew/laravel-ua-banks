@@ -1,0 +1,64 @@
+{
+    "name": "maeandrew/laravel-ua-banks",
+    "description": "Ukrainian bank registry (NBU) with UA IBAN and MFO validation for Laravel.",
+    "keywords": ["laravel", "ukraine", "iban", "mfo", "nbu", "bank", "validation"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Andrii Mei"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/console": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/contracts": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/database": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/http": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/support": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/validation": "^11.0 || ^12.0 || ^13.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
+        "pestphp/pest": "^3.7 || ^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Maeandrew\\UaBanks\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Maeandrew\\UaBanks\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest --exclude-group=live",
+        "test:live": "pest --group=live",
+        "analyse": "phpstan analyse --memory-limit=1G",
+        "format": "pint",
+        "format:check": "pint --test",
+        "snapshot": "testbench ua-banks:snapshot"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Maeandrew\\UaBanks\\UaBanksServiceProvider"
+            ],
+            "aliases": {
+                "UaBanks": "Maeandrew\\UaBanks\\Facades\\UaBanks"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

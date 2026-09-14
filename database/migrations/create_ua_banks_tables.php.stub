@@ -1,0 +1,50 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function getConnection(): ?string
+    {
+        return config('ua-banks.database.connection') ?: parent::getConnection();
+    }
+
+    public function up(): void
+    {
+        $banks = config('ua-banks.database.tables.banks', 'ua_banks');
+        $aliases = config('ua-banks.database.tables.aliases', 'ua_bank_mfo_aliases');
+
+        Schema::connection($this->getConnection())->create($banks, function (Blueprint $table): void {
+            $table->char('mfo', 6)->primary();
+            $table->string('nkb', 16);
+            $table->string('short_name');
+            $table->text('full_name');
+            $table->string('name_en')->nullable();
+            $table->string('edrpou', 16)->index();
+            $table->unsignedSmallInteger('status')->index();
+            $table->unsignedSmallInteger('status_code');
+            $table->string('status_name');
+            $table->date('status_since')->nullable();
+            $table->date('opened_at')->nullable();
+            $table->date('closed_at')->nullable();
+            $table->string('city')->nullable();
+            $table->string('address', 512)->nullable();
+            $table->jsonb('raw')->nullable();
+            $table->timestamp('synced_at');
+            $table->timestamp('removed_from_source_at')->nullable();
+        });
+
+        Schema::connection($this->getConnection())->create($aliases, function (Blueprint $table): void {
+            $table->char('mfo', 6)->primary();
+            $table->char('glmfo', 6)->index();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::connection($this->getConnection())->dropIfExists(config('ua-banks.database.tables.aliases', 'ua_bank_mfo_aliases'));
+        Schema::connection($this->getConnection())->dropIfExists(config('ua-banks.database.tables.banks', 'ua_banks'));
+    }
+};
