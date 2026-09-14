@@ -45,6 +45,10 @@ return [
             'banks' => 'ua_banks',
             'aliases' => 'ua_bank_mfo_aliases',
         ],
+
+        // Answer lookups from the snapshot bundled with the package until the first successful sync
+        // has filled the tables. Set to false to treat empty tables as a missing registry.
+        'fallback_to_bundled_snapshot' => true,
     ],
 
     'cache' => [

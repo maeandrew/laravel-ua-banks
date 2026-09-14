@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 use Maeandrew\UaBanks\Contracts\SyncableRepository;
 use Maeandrew\UaBanks\Data\Bank;
 use Maeandrew\UaBanks\Sync\Registry;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 /**
@@ -27,12 +28,16 @@ final class SnapshotBankRepository implements SyncableRepository
     /** @var array<string, string>|null */
     private ?array $edrpouIndex = null;
 
+    /** @var array<string, true> file versions that failed to load in this process */
+    private array $failedKeys = [];
+
     public function __construct(
         private readonly string $storagePath,
         private readonly string $bundledPath,
         private readonly ?Cache $cache = null,
         private readonly int $cacheTtl = 86400,
         private readonly string $source = '',
+        private readonly ?LoggerInterface $logger = null,
     ) {}
 
     public function find(string $mfo): ?Bank
@@ -137,7 +142,7 @@ final class SnapshotBankRepository implements SyncableRepository
         foreach ([$this->storagePath, $this->bundledPath] as $path) {
             $key = $this->cacheKey($path);
 
-            if ($key === null) {
+            if ($key === null || isset($this->failedKeys[$key])) {
                 continue;
             }
 
@@ -147,7 +152,13 @@ final class SnapshotBankRepository implements SyncableRepository
 
             try {
                 $registry = SnapshotFile::decode($this->load($path, $key));
-            } catch (RuntimeException) {
+            } catch (RuntimeException $e) {
+                $this->failedKeys[$key] = true;
+                $this->logger?->warning('ua-banks: ignoring unreadable snapshot file, falling back to the next source.', [
+                    'path' => $path,
+                    'error' => $e->getMessage(),
+                ]);
+
                 continue;
             }
 

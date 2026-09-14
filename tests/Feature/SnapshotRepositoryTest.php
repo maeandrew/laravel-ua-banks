@@ -2,6 +2,8 @@
 
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Maeandrew\UaBanks\Facades\UaBanks;
 use Maeandrew\UaBanks\Repositories\SnapshotFile;
 use Maeandrew\UaBanks\Tests\TestCase;
 use Maeandrew\UaBanks\UaBanksManager;
@@ -41,6 +43,27 @@ it('falls back to the bundled file when the storage file is corrupt', function (
 
     expect($repository->find('305299'))->not->toBeNull()
         ->and($repository->stored())->toBeNull();
+});
+
+it('logs an unreadable storage file once and does not re-read it on every lookup', function () {
+    $path = config('ua-banks.snapshot.path');
+    mkdir(dirname($path), 0777, true);
+    file_put_contents($path, 'not json');
+    Log::spy();
+    app(UaBanksManager::class)->forgetRepositories();
+
+    expect(UaBanks::byMfo('300465'))->not->toBeNull()
+        ->and(UaBanks::byMfo('305299'))->not->toBeNull()
+        ->and(UaBanks::all()->count())->toBeGreaterThan(50);
+
+    Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message, array $context) => str_contains($message, 'unreadable snapshot')
+        && $context['path'] === $path
+        && str_contains($context['error'], 'not valid JSON'));
+
+    // A replaced (fixed) file is a new version and is picked up.
+    SnapshotFile::write($path, SnapshotFile::encode(fixtureRegistry(), 'test'));
+
+    expect(UaBanks::all())->toHaveCount(10);
 });
 
 it('is empty when neither file exists', function () {

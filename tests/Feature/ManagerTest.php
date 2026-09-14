@@ -114,12 +114,45 @@ it('uses generated_at of the bundled snapshot for freshness', function () {
 });
 
 it('is stale and empty when there is no data', function () {
+    config(['ua-banks.database.fallback_to_bundled_snapshot' => false]);
     $this->useDriver('database');
 
     expect(UaBanks::hasData())->toBeFalse()
         ->and(UaBanks::lastSyncedAt())->toBeNull()
         ->and(UaBanks::isStale())->toBeTrue()
         ->and(UaBanks::all())->toBeEmpty();
+});
+
+it('serves the bundled snapshot from the database driver until the first sync', function () {
+    $this->useDriver('database');
+    $repository = app(UaBanksManager::class)->repository();
+    $bundledAt = CarbonImmutable::parse(SnapshotFile::read(UaBanksManager::BUNDLED_SNAPSHOT)['generated_at']);
+
+    expect($repository->usesFallback())->toBeTrue()
+        ->and($repository->stored())->toBeNull()
+        ->and(UaBanks::hasData())->toBeTrue()
+        ->and(UaBanks::byMfo('300465')?->edrpou)->toBe('00032129')
+        ->and(UaBanks::byMfo('302076')?->mfo)->toBe('300465')
+        ->and(UaBanks::byEdrpou('14360570')?->mfo)->toBe('305299')
+        ->and(UaBanks::all()->count())->toBeGreaterThan(50)
+        ->and(UaBanks::aliases())->not->toBeEmpty()
+        ->and(UaBanks::lastSyncedAt()?->equalTo($bundledAt))->toBeTrue();
+
+    $repository->store(fixtureRegistry(CarbonImmutable::parse('2026-09-13T08:00:00Z')));
+
+    expect($repository->usesFallback())->toBeFalse()
+        ->and(UaBanks::all())->toHaveCount(10)
+        ->and(UaBanks::byMfo('300335')?->mfo)->toBe('300335')
+        ->and(UaBanks::byMfo('380946'))->toBeNull() // in the bundled snapshot only
+        ->and(UaBanks::lastSyncedAt()?->toIso8601String())->toBe('2026-09-13T08:00:00+00:00');
+});
+
+it('can disable the database fallback', function () {
+    config(['ua-banks.database.fallback_to_bundled_snapshot' => false]);
+    $this->useDriver('database');
+
+    expect(UaBanks::byMfo('300465'))->toBeNull()
+        ->and(UaBanks::repository()->usesFallback())->toBeFalse();
 });
 
 it('supports custom drivers via extend', function () {

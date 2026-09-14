@@ -19,6 +19,7 @@ use Maeandrew\UaBanks\Iban\Iban;
 use Maeandrew\UaBanks\Repositories\DatabaseBankRepository;
 use Maeandrew\UaBanks\Repositories\SnapshotBankRepository;
 use Maeandrew\UaBanks\Sync\RecordMapper;
+use Psr\Log\LoggerInterface;
 
 /**
  * Entry point of the package; bound as a singleton and proxied by the UaBanks facade.
@@ -191,9 +192,22 @@ class UaBanksManager
 
         return match ($driver) {
             'snapshot' => $this->createSnapshotRepository(),
-            'database' => new DatabaseBankRepository,
+            'database' => $this->createDatabaseRepository(),
             default => throw new InvalidArgumentException("ua-banks driver [{$driver}] is not supported."),
         };
+    }
+
+    protected function createDatabaseRepository(): DatabaseBankRepository
+    {
+        $fallback = $this->config('ua-banks.database.fallback_to_bundled_snapshot', true);
+
+        return new DatabaseBankRepository(
+            $fallback === false ? null : new SnapshotBankRepository(
+                storagePath: self::BUNDLED_SNAPSHOT,
+                bundledPath: self::BUNDLED_SNAPSHOT,
+                logger: $this->logger(),
+            ),
+        );
     }
 
     protected function createSnapshotRepository(): SnapshotBankRepository
@@ -212,6 +226,7 @@ class UaBanksManager
             cache: $ttl === null || $ttl === 0 || $ttl === false ? null : $cache->store(is_string($store) ? $store : null),
             cacheTtl: is_numeric($ttl) ? (int) $ttl : 86400,
             source: is_string($source) ? $source : '',
+            logger: $this->logger(),
         );
     }
 
@@ -222,6 +237,13 @@ class UaBanksManager
         }
 
         return $repository->aliases()[$mfo] ?? null;
+    }
+
+    private function logger(): ?LoggerInterface
+    {
+        return $this->container->bound(LoggerInterface::class) || $this->container->bound('log')
+            ? $this->container->make(LoggerInterface::class)
+            : null;
     }
 
     private function storagePath(): string
