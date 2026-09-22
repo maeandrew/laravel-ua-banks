@@ -41,10 +41,21 @@ trait ChecksRegistry
         return array_values(array_unique([...$statuses, ...$extra], SORT_REGULAR));
     }
 
+    private function effectiveStatus(Bank $bank): BankStatus
+    {
+        if ($bank->isRemovedFromSource() && $bank->status === BankStatus::Normal) {
+            return BankStatus::ExcludedFromRegister;
+        }
+
+        return $bank->status;
+    }
+
     private function statusLabel(Bank $bank): string
     {
-        return $bank->status === BankStatus::Unknown && $bank->statusName !== ''
+        $status = $this->effectiveStatus($bank);
+
+        return $status === BankStatus::Unknown && $bank->statusName !== ''
             ? $bank->statusName
-            : $bank->status->label();
+            : $status->label();
     }
 }

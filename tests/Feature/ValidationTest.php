@@ -1,5 +1,6 @@
 <?php
 
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Maeandrew\UaBanks\Enums\BankStatus;
@@ -7,6 +8,7 @@ use Maeandrew\UaBanks\Facades\UaBanks;
 use Maeandrew\UaBanks\Repositories\SnapshotBankRepository;
 use Maeandrew\UaBanks\Rules\UaIban;
 use Maeandrew\UaBanks\Rules\UaMfo;
+use Maeandrew\UaBanks\Sync\Registry;
 use Maeandrew\UaBanks\Testing\IbanFactory;
 use Maeandrew\UaBanks\Tests\TestCase;
 use Maeandrew\UaBanks\UaBanksManager;
@@ -178,4 +180,34 @@ it('never performs network requests', function () {
     validateIban(IbanFactory::string('399999'))->passes();
 
     Http::assertNothingSent();
+});
+
+it('rejects an IBAN of a Normal-status bank that disappeared from the NBU source', function () {
+    // Build a registry where 300465 (Oschadbank, Normal) has removed_from_source_at set.
+    $registry = fixtureRegistry();
+    $banks = $registry->banks;
+    $banks['300465'] = $banks['300465']->withSyncState($banks['300465']->syncedAt, CarbonImmutable::now('UTC'));
+    app(UaBanksManager::class)->repository()->store(
+        new Registry($banks, $registry->aliases, $registry->generatedAt)
+    );
+
+    $validator = validateIban(IbanFactory::string('300465'));
+
+    expect($validator->fails())->toBeTrue()
+        ->and($validator->errors()->first('iban'))->toContain('Ощадбанк')
+        ->and($validator->errors()->first('iban'))->toContain('Excluded from the State Register of Banks');
+});
+
+it('rejects an MFO of a Normal-status bank that disappeared from the NBU source', function () {
+    $registry = fixtureRegistry();
+    $banks = $registry->banks;
+    $banks['300465'] = $banks['300465']->withSyncState($banks['300465']->syncedAt, CarbonImmutable::now('UTC'));
+    app(UaBanksManager::class)->repository()->store(
+        new Registry($banks, $registry->aliases, $registry->generatedAt)
+    );
+
+    $validator = Validator::make(['mfo' => '300465'], ['mfo' => [UaMfo::make()->operating()]]);
+
+    expect($validator->fails())->toBeTrue()
+        ->and($validator->errors()->first('mfo'))->toContain('Excluded from the State Register of Banks');
 });

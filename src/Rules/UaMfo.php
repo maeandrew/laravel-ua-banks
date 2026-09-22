@@ -66,7 +66,7 @@ final class UaMfo implements ValidationRule
             return;
         }
 
-        if ($this->operating && ! in_array($bank->status, $this->allowedStatuses(), true)) {
+        if ($this->operating && ! in_array($this->effectiveStatus($bank), $this->allowedStatuses(), true)) {
             $fail('ua-banks::validation.mfo_bank_not_operating')->translate([
                 'bank' => $bank->shortName,
                 'status' => $this->statusLabel($bank),

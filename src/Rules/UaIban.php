@@ -97,7 +97,7 @@ final class UaIban implements ValidationRule
             return;
         }
 
-        if (! in_array($bank->status, $this->allowedStatuses($this->extraStatuses), true)) {
+        if (! in_array($this->effectiveStatus($bank), $this->allowedStatuses($this->extraStatuses), true)) {
             $fail('ua-banks::validation.iban_bank_not_operating')->translate([
                 'bank' => $bank->shortName,
                 'status' => $this->statusLabel($bank),

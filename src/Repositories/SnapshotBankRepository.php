@@ -53,8 +53,14 @@ final class SnapshotBankRepository implements SyncableRepository
             $this->edrpouIndex = [];
 
             foreach ($registry->banks as $bank) {
-                // Prefer a bank that is still present in the source when EDRPOU codes repeat.
-                if ($bank->edrpou !== '' && (! isset($this->edrpouIndex[$bank->edrpou]) || ! $bank->isRemovedFromSource())) {
+                if ($bank->edrpou === '') {
+                    continue;
+                }
+
+                $existingMfo = $this->edrpouIndex[$bank->edrpou] ?? null;
+
+                // Prefer a bank that is still present in the source, and lowest MFO on tie (registry is sorted by MFO).
+                if ($existingMfo === null || ($registry->banks[$existingMfo]->isRemovedFromSource() && ! $bank->isRemovedFromSource())) {
                     $this->edrpouIndex[$bank->edrpou] = $bank->mfo;
                 }
             }

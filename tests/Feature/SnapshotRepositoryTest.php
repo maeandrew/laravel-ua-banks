@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Maeandrew\UaBanks\Facades\UaBanks;
 use Maeandrew\UaBanks\Repositories\SnapshotFile;
+use Maeandrew\UaBanks\Sync\Registry;
 use Maeandrew\UaBanks\Tests\TestCase;
 use Maeandrew\UaBanks\UaBanksManager;
 
@@ -84,6 +85,34 @@ it('exposes aliases and EDRPOU lookups', function () {
     expect($repository->aliases())->toBe(['302076' => '300465', '303398' => '300465', '380269' => '305299'])
         ->and($repository->findByEdrpou('14360570')?->mfo)->toBe('305299')
         ->and($repository->findByEdrpou('99999999'))->toBeNull();
+});
+
+it('prefers the active bank when two share an EDRPOU, lowest MFO on tie', function () {
+    $storage = $this->tempDir.'/banks.json';
+
+    // Give 300119 and 300465 the same EDRPOU; 300119 < 300465, but 300119 is removed from source.
+    $typ0 = TestCase::fixture('typ0.json');
+    $sharedEdrpou = '99000001';
+    foreach ($typ0 as &$record) {
+        match ($record['MFO']) {
+            300119 => $record['KOD_EDRPOU'] = $sharedEdrpou,
+            300465 => $record['KOD_EDRPOU'] = $sharedEdrpou,
+            default => null,
+        };
+    }
+    unset($record);
+
+    $registry = fixtureRegistry(null, $typ0);
+    // Mark 300119 as removed from source (it has a lower MFO)
+    $banks = $registry->banks;
+    $banks['300119'] = $banks['300119']->withSyncState($banks['300119']->syncedAt, CarbonImmutable::now('UTC'));
+    $registry = new Registry($banks, $registry->aliases, $registry->generatedAt);
+
+    SnapshotFile::write($storage, SnapshotFile::encode($registry, 'test'));
+    $repository = snapshotRepository($storage, $this->tempDir.'/none.json');
+
+    // Active bank (300465) must win over removed (300119) even though 300119 has a lower MFO.
+    expect($repository->findByEdrpou($sharedEdrpou)?->mfo)->toBe('300465');
 });
 
 it('caches parsed data with a key that follows the file version', function () {
