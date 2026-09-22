@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-22
+
+### Fixed
+
+- `SnapshotBankRepository::findByEdrpou` returned the bank with the **highest** MFO when multiple
+  banks shared an EDRPOU code, while `DatabaseBankRepository` returned the one with the **lowest**
+  MFO. Both drivers now consistently prefer an active (non-removed) bank and break ties by the
+  lowest MFO.
+- `UaIban` and `UaMfo::operating()` did not reject banks whose last recorded status was `Normal` but
+  which had disappeared from the NBU source (`removed_from_source_at` set). Those banks now resolve
+  to `ExcludedFromRegister` for validation purposes, consistent with `UaBanks::operating()`.
+
 ## [0.1.0] - 2026-09-14
 
 ### Added
@@ -32,5 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   string aliases `ua_iban` and `ua_mfo`, and Ukrainian and English translations.
 - Testing helpers `IbanFactory` and `NbuFake`.
 
-[Unreleased]: https://github.com/maeandrew/laravel-ua-banks/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/maeandrew/laravel-ua-banks/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/maeandrew/laravel-ua-banks/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/maeandrew/laravel-ua-banks/releases/tag/v0.1.0
